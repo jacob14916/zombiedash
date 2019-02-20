@@ -1,0 +1,6 @@
+#compiled files
+*.o
+# VSCode config
+.vscode/
+# the name of the compiled binary
+ZombieDash
