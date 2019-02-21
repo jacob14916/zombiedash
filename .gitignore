@@ -4,3 +4,5 @@
 .vscode/
 # the name of the compiled binary
 ZombieDash
+# the zip files used to turn in the project
+*.zip
