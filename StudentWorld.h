@@ -27,7 +27,36 @@ public:
 
     // checks for bounding box violation with all actors, except a
     // pass a = this when appropriate, or nullptr if not
-    bool spriteCanGoHere(Actor* a, double x, double y);
+    bool spriteCanGoHere(Actor* a, double x, double y) const;
+
+    // see if there are any citizens left alive
+    bool playerCanEscape() const;
+
+    // see if Penelope overlaps with the object at (x,y)
+    bool playerOverlapsWithThis(double x, double y) const;
+
+    // give Penelope a vaccine (called by VaccineGoodie objects)
+    void givePlayerVaccine();
+
+    static bool boundingBoxesIntersect(double x1, double y1, double x2, double y2) {
+        double xdist = x1 - x2;
+        double ydist = y1 - y2;
+
+        if (xdist < 0) xdist = -xdist;
+        if (ydist < 0) ydist = -ydist;
+
+        return (xdist < SPRITE_WIDTH && ydist < SPRITE_HEIGHT);
+    };
+
+    static bool objectsOverlap(double x1, double y1, double x2, double y2) {
+        double xdist = x1 - x2;
+        double ydist = y1 - y2;
+
+        return (xdist*xdist + ydist*ydist) <= 100;
+    };
+
+    void completedLevel () {m_justCompletedLevel = true;}
+
 private:
 
     string getGameStatText();
@@ -38,6 +67,8 @@ private:
     Level m_Level;
 
     Penelope* m_Penelope;
+
+    bool m_justCompletedLevel;
 };
 
 #endif // STUDENTWORLD_H_

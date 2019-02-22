@@ -18,6 +18,7 @@ StudentWorld::StudentWorld(string assetPath)
 {
     // is this necessary? i think not
     // m_Actors = list<Actor*>();
+    m_justCompletedLevel = false;
 }
 
 StudentWorld::~StudentWorld() {
@@ -31,15 +32,19 @@ int StudentWorld::init()
     // load level
     Level::LoadResult lr = m_Level.loadLevel(getLevelFilename());
     // deal with problems in case it's not there
-    if (lr == Level::load_fail_bad_format || lr == Level::load_fail_file_not_found) {
+    if (lr == Level::load_fail_bad_format) {
         return GWSTATUS_LEVEL_ERROR;
     }
+    if (lr == Level::load_fail_file_not_found) {
+        return GWSTATUS_PLAYER_WON;
+    }
+
     // populate map level file
     for (int i = 0; i < LEVEL_WIDTH; i++) {
         for (int j = 0; j < LEVEL_HEIGHT; j++) {
             switch(m_Level.getContentsOf(i,j)) {
             case Level::player:
-                m_Penelope = new Penelope(this, i, j);
+                m_Penelope = new Penelope(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j);
                 m_Actors.push_back(m_Penelope);
                 break;
             case Level::wall:
@@ -47,7 +52,13 @@ int StudentWorld::init()
                 // because the given numbers are too small
                 // now the Wall constructor scales this automatically
 
-                m_Actors.push_back(new Wall(this, i, j));
+                m_Actors.push_back(new Wall(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
+            case Level::exit:
+                m_Actors.push_back(new Exit(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
+            case Level::vaccine_goodie:
+                m_Actors.push_back(new VaccineGoodie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                 break;
             default:
                 break;
@@ -63,7 +74,7 @@ string StudentWorld::getLevelFilename() {
     ostringstream oss;
     oss.fill('0');
     oss << "level";
-    oss << setw(2) << 1;
+    oss << setw(2) << getLevel();
     oss << ".txt";
     return oss.str();
 }
@@ -77,16 +88,34 @@ int StudentWorld::move()
     }
 
     // look at who's dead
-
-    if (!m_Penelope->isAlive()) {
+    if (m_Penelope->isDead()) {
+        // player died
+        // why do i have to call this myself? would make more sense if GameWorld handled
         decLives();
         return GWSTATUS_PLAYER_DIED;
     }
-
+    // clean out other dead actors
+    list<Actor*>::iterator ai = m_Actors.begin();
+    while (ai != m_Actors.end()) {
+        if ((*ai)->isDead()) {
+            (*ai)->deathrattle();
+            list<Actor*>::iterator todelete = ai;
+            ++ai;
+            delete *todelete;
+            m_Actors.erase(todelete);
+        } else {
+            ++ai;
+        }
+    }
 
     // update stats text
 
     setGameStatText(getGameStatText());
+
+    if (m_justCompletedLevel) {
+        m_justCompletedLevel = false;
+        return GWSTATUS_FINISHED_LEVEL;
+    }
 
     return GWSTATUS_CONTINUE_GAME;
 }
@@ -104,28 +133,43 @@ string StudentWorld::getGameStatText() {
     oss << "  ";
     oss << "Lives: ";
     oss << setw(1) << getLives();
+    oss << "  ";
+    oss << "Vaccines: ";
+    // causes problems when called after m_Penelope has been deleted
+    oss << setw(1) << m_Penelope->getnumVaccines();
     return oss.str();
 }
 
 
-bool StudentWorld::spriteCanGoHere(Actor* a, double x, double y) {
-    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
-        if (*ai == a) {
+bool StudentWorld::spriteCanGoHere(Actor* a, double x, double y) const {
+    for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if (*ai == a || !((*ai)->blocksMovement())) {
             // avoid the same object causing movement blocking
             continue;
         }
-
-        double xdist = (*ai)->getX() - x;
-        double ydist = (*ai)->getY() - y;
-
-        if (xdist < 0) xdist = -xdist;
-        if (ydist < 0) ydist = -ydist;
-
-        if (xdist < SPRITE_WIDTH && ydist < SPRITE_HEIGHT) {
+        if(boundingBoxesIntersect(x,y,(*ai)->getX(), (*ai)->getY())) {
             return false;
         }
     }
     return true;
+}
+
+
+bool StudentWorld::playerCanEscape() const {
+    for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if ((*ai)->preventsEscape()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool StudentWorld::playerOverlapsWithThis(double x, double y) const {
+    return objectsOverlap(x, y, m_Penelope->getX(), m_Penelope->getY());
+}
+
+void StudentWorld::givePlayerVaccine() {
+    m_Penelope->pickupVaccine();
 }
 
 void StudentWorld::cleanUp()

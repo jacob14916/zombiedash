@@ -20,8 +20,16 @@ class Actor : public GraphObject {
 
         StudentWorld* getWorld() const {return m_World;}
 
+        virtual bool blocksMovement() const {return false;}
+
+        virtual bool preventsEscape() const {return false;}
+
         // every actor runs this every tick
         virtual void doSomething() = 0;
+
+        virtual bool isDead() const {return false;}
+
+        virtual void deathrattle() {}
 
     private:
         StudentWorld* m_World;
@@ -35,20 +43,26 @@ class Walker : public Actor {
         
         virtual ~Walker() {};
 
+        virtual bool blocksMovement() const {return true;}
+
         void tryMove(double newX, double newY);
 };
 
 
 class Penelope : public Walker {
     public:
-        Penelope(StudentWorld* w, int levelx, int levely):
-            Walker(w, IID_PLAYER, SPRITE_WIDTH*levelx, SPRITE_HEIGHT*levely, right) {}
+        Penelope(StudentWorld* w, double x, double y):
+            Walker(w, IID_PLAYER, x, y, right), m_numVaccines(0) {}
         
         ~Penelope() {};
 
         void doSomething ();
 
-        bool isAlive() const {return m_alive;}
+        bool isDead() const {return m_dead;}
+
+        int getnumVaccines() const {return m_numVaccines;}
+
+        void pickupVaccine() {m_numVaccines++;}
 
     private:
         // penelope data
@@ -56,22 +70,51 @@ class Penelope : public Walker {
 
         const int PENELOPE_SPEED = 4;
 
-        bool m_alive = true;
+        int m_numVaccines;
+
+        bool m_dead = false;
         
 };
 
 
 class Wall : public Actor {
     public:
-        Wall(StudentWorld* w, int levelx, int levely):
-            Actor(w, IID_WALL, SPRITE_WIDTH*levelx, SPRITE_HEIGHT*levely, right) {}
+        Wall(StudentWorld* w, double x, double y):
+            Actor(w, IID_WALL, x, y, right) {}
         ~Wall() {
             // do nothing
         }
         // since this is a wall, do nothing
         void doSomething();
+        virtual bool blocksMovement() const {return true;}
     private:
         // no data, this is a wall
+};
+
+
+class Exit : public Actor {
+    public:
+        Exit(StudentWorld*w, double x, double y):
+            Actor(w, IID_EXIT, x, y, right, 1) {}
+        ~Exit() {};
+        void doSomething();
+    private:
+
+};
+
+class VaccineGoodie : public Actor {
+    public:
+        VaccineGoodie(StudentWorld* w, double x, double y):
+            Actor(w, IID_VACCINE_GOODIE, x, y, right, 1), m_dead(false) {}
+        ~VaccineGoodie() {};
+
+        void doSomething();
+
+        virtual bool isDead() const {return m_dead;}
+
+    private:
+        bool m_dead;
+
 };
 
 

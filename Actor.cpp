@@ -3,6 +3,9 @@
 
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
 
+// TODO
+// VaccineGoodie
+
 // class Actor
 
 
@@ -27,7 +30,7 @@ void Penelope::doSomething() {
         switch (keydown)
         {
             case KEY_PRESS_ENTER:
-                m_alive = false;
+                m_dead = true;
                 break;
 
             case KEY_PRESS_DOWN:
@@ -63,4 +66,24 @@ void Penelope::doSomething() {
 
 void Wall::doSomething() {
     
+}
+
+// class Exit
+
+void Exit::doSomething() {
+    if (getWorld()->playerCanEscape() && getWorld()->playerOverlapsWithThis(getX(), getY())) {
+        getWorld()->completedLevel();
+    }
+}
+
+// class VaccineGoodie
+
+void VaccineGoodie::doSomething() {
+    if (isDead()) {
+        return;
+    }
+    if (getWorld()->playerOverlapsWithThis(getX(), getY())) {
+        getWorld()->givePlayerVaccine();
+        m_dead = true;
+    }
 }
