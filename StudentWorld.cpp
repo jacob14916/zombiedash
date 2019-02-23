@@ -60,6 +60,13 @@ int StudentWorld::init()
             case Level::vaccine_goodie:
                 m_Actors.push_back(new VaccineGoodie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                 break;
+
+            case Level::dumb_zombie:
+                m_Actors.push_back(new DumbZombie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
+            case Level::smart_zombie:
+                m_Actors.push_back(new SmartZombie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
             default:
                 break;
             }
@@ -127,21 +134,28 @@ string StudentWorld::getGameStatText() {
     oss.fill('0');
     oss << "Score: ";
     oss << setw(6) << getScore();
+
     oss << "  ";
     oss << "Level: ";
     oss << setw(1) << getLevel();
+
     oss << "  ";
     oss << "Lives: ";
     oss << setw(1) << getLives();
+
     oss << "  ";
-    oss << "Vaccines: ";
+    oss << "Vacc: ";
     // causes problems when called after m_Penelope has been deleted
     oss << setw(1) << m_Penelope->getnumVaccines();
+
+    oss << "  ";
+    oss << "Infected: ";
+    oss << setw(1) << m_Penelope->getInfectionCount();
     return oss.str();
 }
 
 
-bool StudentWorld::spriteCanGoHere(Actor* a, double x, double y) const {
+bool StudentWorld::spriteCanGoHere(Actor* a, int x, int y) const {
     for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
         if (*ai == a || !((*ai)->blocksMovement())) {
             // avoid the same object causing movement blocking
@@ -164,12 +178,51 @@ bool StudentWorld::playerCanEscape() const {
     return true;
 }
 
-bool StudentWorld::playerOverlapsWithThis(double x, double y) const {
+bool StudentWorld::playerOverlapsWithThis(int x, int y) const {
     return objectsOverlap(x, y, m_Penelope->getX(), m_Penelope->getY());
 }
 
 void StudentWorld::givePlayerVaccine() {
     m_Penelope->pickupVaccine();
+}
+
+void StudentWorld::getNearestZombieTarget(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const {
+    int minx = m_Penelope->getX();
+    int miny = m_Penelope->getY();
+    int mind2 = (x-minx)*(x-minx) + (y-miny)*(y-miny);
+    for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if ((*ai)->isZombieTarget()) {
+            int ax = (*ai)->getX();
+            int ay = (*ai)->getY();
+            int d2 = (x-ax)*(x-ax) + (y-ay)*(y-ay);
+            if (d2 < mind2) {
+                minx = ax;
+                miny = ay;
+                mind2 = mind2;
+            }
+        }
+    }
+    targetx = minx;
+    targety = miny;
+    targetd2 = mind2;
+}
+
+void StudentWorld::infectOverlapping(int x, int y) {
+    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if ((*ai)->isZombieTarget()) {
+            int ax = (*ai)->getX();
+            int ay = (*ai)->getY();
+            int d2 = (x-ax)*(x-ax) + (y-ay)*(y-ay);
+            if (d2 <= 100) { // at some point get rid of the hard coded 100s
+                (*ai)->infect();
+            }
+        }
+    }
+}
+
+void StudentWorld::spawnVomit(int x, int y) {
+    m_Actors.push_back(new Vomit(this, x, y));
 }
 
 void StudentWorld::cleanUp()

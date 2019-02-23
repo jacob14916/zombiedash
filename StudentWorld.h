@@ -25,18 +25,28 @@ public:
     virtual int move();
     virtual void cleanUp();
 
-    // checks for bounding box violation with all actors, except a
+    // checks for bounding box violation with all actors, except a;
     // pass a = this when appropriate, or nullptr if not
-    bool spriteCanGoHere(Actor* a, double x, double y) const;
+    bool spriteCanGoHere(Actor* a, int x, int y) const;
 
     // see if there are any citizens left alive
     bool playerCanEscape() const;
 
     // see if Penelope overlaps with the object at (x,y)
-    bool playerOverlapsWithThis(double x, double y) const;
+    bool playerOverlapsWithThis(int x, int y) const;
 
     // give Penelope a vaccine (called by VaccineGoodie objects)
     void givePlayerVaccine();
+
+    // used by SmartZombie to find targets
+    void getNearestZombieTarget(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const;
+
+    // used by Vomit to infect overlapping people
+    void infectOverlapping(int x, int y);
+
+    // used by Zombie to spawn vomit
+    void spawnVomit(int x, int y);
 
     static bool boundingBoxesIntersect(double x1, double y1, double x2, double y2) {
         double xdist = x1 - x2;

@@ -13,7 +13,9 @@ class Actor : public GraphObject {
 
         Actor(StudentWorld* w, int imageID, double startX, double startY, 
             int dir = 0, int depth = 0, double size = 1.0)
-        :GraphObject(imageID, startX, startY, dir, depth, size), m_World(w) {
+        :GraphObject(imageID, startX, startY, dir, depth, size), 
+            m_World(w),
+            m_dead(false) {
                     // do nothing
                 }
         virtual ~Actor() {}
@@ -27,12 +29,20 @@ class Actor : public GraphObject {
         // every actor runs this every tick
         virtual void doSomething() = 0;
 
-        virtual bool isDead() const {return false;}
+        void die() {m_dead = true;}
+
+        bool isDead() const {return m_dead;}
+
+        virtual bool isZombieTarget() const {return false;}
 
         virtual void deathrattle() {}
 
+        virtual void infect() {}
+
     private:
         StudentWorld* m_World;
+
+        bool m_dead;
 };
 
 class Walker : public Actor {
@@ -45,20 +55,66 @@ class Walker : public Actor {
 
         virtual bool blocksMovement() const {return true;}
 
-        void tryMove(double newX, double newY);
+        bool tryMove(int direction, int stepLength);
+};
+
+class Zombie : public Walker {
+    public:
+        Zombie(StudentWorld* w, double x, double y):
+            Walker(w, IID_ZOMBIE, x, y, right), 
+            m_paralyzed(false),
+            m_movementPlanDistance(0) {}
+        
+        virtual ~Zombie() {};
+        
+        void doSomething();
+        virtual void decideMovementDirection() = 0;
+    private:
+        bool m_paralyzed;
+        int m_movementPlanDistance;
+
+};
+
+class Person : public Walker {
+    public:
+        Person(StudentWorld* w, int imageID, double x, double y, int dir):
+            Walker(w, imageID, x, y, dir),
+            m_infectionCount(0),
+            m_infected(false) {}
+
+        virtual ~Person() {}
+
+        bool isZombieTarget() const {return true;}
+
+        void infect() {m_infected = true;}
+
+        bool isInfected() const {return m_infected;}
+
+        int getInfectionCount() const {return m_infectionCount;}
+
+        void doSomething();
+
+        virtual void decideMovement() = 0;
+    
+    private:
+            
+        int m_infectionCount;
+
+        bool m_infected;
+
 };
 
 
-class Penelope : public Walker {
+class Penelope : public Person {
     public:
         Penelope(StudentWorld* w, double x, double y):
-            Walker(w, IID_PLAYER, x, y, right), m_numVaccines(0) {}
+            Person(w, IID_PLAYER, x, y, right), 
+            m_numVaccines(0) {}
         
         ~Penelope() {};
 
-        void doSomething ();
-
-        bool isDead() const {return m_dead;}
+        // this is what differentiates Penelope (so far) from a Citizen
+        virtual void decideMovement();
 
         int getnumVaccines() const {return m_numVaccines;}
 
@@ -71,9 +127,6 @@ class Penelope : public Walker {
         const int PENELOPE_SPEED = 4;
 
         int m_numVaccines;
-
-        bool m_dead = false;
-        
 };
 
 
@@ -105,15 +158,50 @@ class Exit : public Actor {
 class VaccineGoodie : public Actor {
     public:
         VaccineGoodie(StudentWorld* w, double x, double y):
-            Actor(w, IID_VACCINE_GOODIE, x, y, right, 1), m_dead(false) {}
+            Actor(w, IID_VACCINE_GOODIE, x, y, right, 1) {}
         ~VaccineGoodie() {};
 
         void doSomething();
 
-        virtual bool isDead() const {return m_dead;}
-
     private:
-        bool m_dead;
+
+};
+
+class DumbZombie : public Zombie {
+    public:
+        DumbZombie(StudentWorld* w, double x, double y):
+            Zombie(w, x, y)
+            {};
+
+        ~DumbZombie() {};
+        
+        void decideMovementDirection();
+    private:
+};
+
+class SmartZombie : public Zombie {
+    public:
+        SmartZombie(StudentWorld* w, double x, double y):
+            Zombie(w, x, y)
+            {};
+
+        ~SmartZombie() {};
+        
+        void decideMovementDirection();
+    private:
+};
+
+class Vomit : public Actor {
+    public:
+        Vomit(StudentWorld* w, double x, double y):
+            Actor(w, IID_VOMIT, x, y),
+            numTicksAlive(0) {}
+        
+        ~Vomit () {}
+
+        void doSomething();
+    public:
+        int numTicksAlive;
 
 };
 
