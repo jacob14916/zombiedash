@@ -51,12 +51,12 @@ void Person::doSomething() {
         die();
         return;
     }
-    decideMovement();
+    doPersonAction();
 }
 
 // class Penelope
 
-void Penelope::decideMovement() {
+void Penelope::doPersonAction() {
     StudentWorld* sw = getWorld();
     int keydown;
 
@@ -64,7 +64,21 @@ void Penelope::decideMovement() {
         switch (keydown)
         {
             case KEY_PRESS_ENTER:
-                die();
+                // use vaccine
+                if (m_numVaccines > 0) {
+                    uninfect();
+                    m_numVaccines--;
+                }
+                break;
+            case KEY_PRESS_SPACE:
+                // fire flamethrower
+                tryFireFlamethrower();
+                break;
+            case KEY_PRESS_TAB:
+                if (m_numLandmines > 0) {
+                    getWorld()->spawnLandmine(getX(), getY());
+                    m_numLandmines--;
+                }
                 break;
 
             case KEY_PRESS_UP:
@@ -92,6 +106,37 @@ void Penelope::decideMovement() {
     }
 }
 
+void Penelope::tryFireFlamethrower() {
+    // could also be done recursively
+    if (m_ammo == 0) {
+        return;
+    }
+
+    m_ammo--;
+
+    int flamex = getX();
+    int flamey = getY();
+
+    Direction dir = getDirection();
+
+    for (int i = 0; i < 3; i++) {
+        switch (dir)
+        {
+            case up: flamey += SPRITE_HEIGHT;       break;
+            case down: flamey -= SPRITE_HEIGHT;     break;
+            case left: flamex -= SPRITE_WIDTH;      break;
+            case right: flamex += SPRITE_HEIGHT;    break;
+        
+            default:
+                break;
+        }
+        if (!getWorld()->spawnFlame(flamex, flamey, dir)) {
+            break;
+        }
+    }
+    
+}
+
 // class Wall
 
 void Wall::doSomething() {
@@ -107,16 +152,39 @@ void Exit::doSomething() {
     }
 }
 
-// class VaccineGoodie
+// class Pit
 
-void VaccineGoodie::doSomething() {
+void Pit::doSomething() {
+    getWorld()->damageOverlapping(getX(), getY());
+}
+
+// class Goodie
+
+void Goodie::doSomething() {
     if (isDead()) {
         return;
     }
     if (getWorld()->playerOverlapsWithThis(getX(), getY())) {
-        getWorld()->givePlayerVaccine();
+        getWorld()->increaseScore(50);
+        getPickedUp();
         die();
     }
+}
+
+// class VaccineGoodie
+
+void VaccineGoodie::getPickedUp() {
+    getWorld()->givePlayerVaccine();
+}
+
+// class GasCanGoodie
+
+void GasCanGoodie::getPickedUp() {
+    getWorld()->givePlayerAmmo();
+}
+
+void LandmineGoodie::getPickedUp() {
+    getWorld()->givePlayerLandmine();
 }
 
 // class Zombie
@@ -176,6 +244,11 @@ void Zombie::doSomething() {
     m_paralyzed = true;
 }
 
+void Zombie::deathrattle() {
+    getWorld()->increaseScore(getBounty());
+    getWorld()->spawnVaccineGoodie(getX(), getY());
+}
+
 // class DumbZombie
 
 void DumbZombie::decideMovementDirection() {
@@ -224,18 +297,64 @@ void SmartZombie::decideMovementDirection() {
     }
 }
 
-// class Vomit
+// class Projectile
 
-void Vomit::doSomething() {
+void Projectile::doSomething() {
     if (isDead()) {
         return;
     }
-    if (numTicksAlive == 2) {
+    if (m_numTicksAlive == 2) {
         die();
         return;
     }
+    doProjectileAction();
+    m_numTicksAlive++;
+}
 
+// class Vomit
+
+void Vomit::doProjectileAction() {
     getWorld()->infectOverlapping(getX(), getY());
+}
 
-    numTicksAlive++;
+// class Flame
+
+void Flame::doProjectileAction() {
+    getWorld()->damageOverlapping(getX(), getY());
+}
+
+// class Landmine
+
+void Landmine::doSomething () {
+    if (isDead()) return;
+    if (m_numSafetyTicks > 0) {
+        m_numSafetyTicks--;
+        return;
+    }
+    if (getWorld()->shouldTriggerLandmine(getX(), getY())) {
+        cout << "Managed to run shouldTriggerLandmine" << endl;
+        explode();
+    }
+}
+
+void Landmine::damage() {
+    if (isDead()) {
+        // prevent infinite loop where landmine is damaged by its own flame
+        return;
+    }
+    explode();
+}
+
+void Landmine::explode() {
+    die();
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            getWorld()->spawnFlame(getX() + SPRITE_WIDTH*i,
+                getY() + SPRITE_HEIGHT*j, right); 
+        }
+    }
+}
+
+void Landmine::deathrattle() {
+    getWorld()->spawnPit(getX(), getY());
 }

@@ -35,8 +35,17 @@ public:
     // see if Penelope overlaps with the object at (x,y)
     bool playerOverlapsWithThis(int x, int y) const;
 
+    // see if Penelope overlaps with the object at (x,y)
+    bool shouldTriggerLandmine(int x, int y) const;
+
     // give Penelope a vaccine (called by VaccineGoodie objects)
     void givePlayerVaccine();
+
+    // used by GasCanGoodie to give Penelope 5 ammo
+    void givePlayerAmmo();
+
+    // used by GasCanGoodie to give Penelope 5 ammo
+    void givePlayerLandmine();
 
     // used by SmartZombie to find targets
     void getNearestZombieTarget(int x, int y, 
@@ -47,6 +56,20 @@ public:
 
     // used by Zombie to spawn vomit
     void spawnVomit(int x, int y);
+    
+    // used by Zombie to spawn vaccine goodie when it dies
+    void spawnVaccineGoodie(int x, int y);
+
+    // used by Penelope to spawn landmines
+    void spawnLandmine(int x, int y);
+
+    void spawnPit(int x, int y);
+
+    // used by Penelope to spawn flame
+    bool spawnFlame(int x, int y, int dir);
+
+    // used by Flame to burn overlapping burnables
+    void damageOverlapping(int x, int y);
 
     static bool boundingBoxesIntersect(double x1, double y1, double x2, double y2) {
         double xdist = x1 - x2;

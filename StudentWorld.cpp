@@ -60,13 +60,19 @@ int StudentWorld::init()
             case Level::vaccine_goodie:
                 m_Actors.push_back(new VaccineGoodie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                 break;
-
+            case Level::gas_can_goodie:
+                m_Actors.push_back(new GasCanGoodie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
             case Level::dumb_zombie:
                 m_Actors.push_back(new DumbZombie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                 break;
             case Level::smart_zombie:
                 m_Actors.push_back(new SmartZombie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
                 break;
+            case Level::pit:
+                m_Actors.push_back(new Pit(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+            case Level::landmine_goodie:
+                m_Actors.push_back(new LandmineGoodie(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
             default:
                 break;
             }
@@ -149,6 +155,16 @@ string StudentWorld::getGameStatText() {
     oss << setw(1) << m_Penelope->getnumVaccines();
 
     oss << "  ";
+    oss << "Flames: ";
+    // causes problems when called after m_Penelope has been deleted
+    oss << setw(1) << m_Penelope->getAmmo();
+
+    oss << "  ";
+    oss << "Mines: ";
+    // causes problems when called after m_Penelope has been deleted
+    oss << setw(1) << m_Penelope->getnumLandmines();
+
+    oss << "  ";
     oss << "Infected: ";
     oss << setw(1) << m_Penelope->getInfectionCount();
     return oss.str();
@@ -182,8 +198,28 @@ bool StudentWorld::playerOverlapsWithThis(int x, int y) const {
     return objectsOverlap(x, y, m_Penelope->getX(), m_Penelope->getY());
 }
 
+bool StudentWorld::shouldTriggerLandmine(int x, int y) const {
+    for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if (!((*ai)->triggersLandmine())) {
+            continue;
+        }
+        if(objectsOverlap(x,y,(*ai)->getX(), (*ai)->getY())) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void StudentWorld::givePlayerVaccine() {
     m_Penelope->pickupVaccine();
+}
+
+void StudentWorld::givePlayerAmmo() {
+    m_Penelope->gainAmmo();
+}
+
+void StudentWorld::givePlayerLandmine() {
+    m_Penelope->pickupLandmine();
 }
 
 void StudentWorld::getNearestZombieTarget(int x, int y, 
@@ -210,19 +246,46 @@ void StudentWorld::getNearestZombieTarget(int x, int y,
 
 void StudentWorld::infectOverlapping(int x, int y) {
     for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
-        if ((*ai)->isZombieTarget()) {
-            int ax = (*ai)->getX();
-            int ay = (*ai)->getY();
-            int d2 = (x-ax)*(x-ax) + (y-ay)*(y-ay);
-            if (d2 <= 100) { // at some point get rid of the hard coded 100s
-                (*ai)->infect();
-            }
+        if ((*ai)->isZombieTarget() && 
+            objectsOverlap(x, y, (*ai)->getX(), (*ai)->getY())) {
+            (*ai)->infect();
+        }
+    }
+}
+
+void StudentWorld::damageOverlapping(int x, int y) {
+    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if (objectsOverlap(x, y, (*ai)->getX(), (*ai)->getY())) {
+            (*ai)->damage();
         }
     }
 }
 
 void StudentWorld::spawnVomit(int x, int y) {
     m_Actors.push_back(new Vomit(this, x, y));
+}
+
+void StudentWorld::spawnVaccineGoodie(int x, int y) {
+    m_Actors.push_back(new VaccineGoodie(this, x, y));
+}
+
+void StudentWorld::spawnLandmine(int x, int y) {
+    m_Actors.push_back(new Landmine(this, x, y));
+}
+
+void StudentWorld::spawnPit(int x, int y) {
+    m_Actors.push_back(new Pit(this, x, y));
+}
+
+bool StudentWorld::spawnFlame(int x, int y, int dir) {
+    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if ((*ai)->blocksFlame() && 
+            objectsOverlap(x, y, (*ai)->getX(), (*ai)->getY())) {
+            return false;
+        }
+    }
+    m_Actors.push_back(new Flame(this, x, y, dir));
+    return true;
 }
 
 void StudentWorld::cleanUp()
