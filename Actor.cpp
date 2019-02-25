@@ -244,17 +244,33 @@ void Zombie::doSomething() {
     m_paralyzed = true;
 }
 
-void Zombie::deathrattle() {
-    getWorld()->increaseScore(getBounty());
-    getWorld()->spawnVaccineGoodie(getX(), getY());
-}
-
 // class DumbZombie
 
 void DumbZombie::decideMovementDirection() {
     // generate a random integer that is either 0, 90, 180, or 270
     setDirection(90*randInt(0,3));
 }
+
+void DumbZombie::deathrattle() {
+    getWorld()->increaseScore(1000);
+
+    if (randInt(1,10) == 10) {
+        int goodieX = getX();
+        int goodieY = getY();
+
+        switch (randInt(1,4))
+        {
+            case 1: goodieY += SPRITE_HEIGHT;         break;
+            case 2: goodieY -= SPRITE_HEIGHT;         break;
+            case 3: goodieX -= SPRITE_WIDTH;          break;
+            case 4: goodieX += SPRITE_WIDTH;          break;
+        }
+
+        getWorld()->trySpawnVaccineGoodie(goodieX, goodieY);
+    }
+}
+
+// class SmartZombie
 
 void SmartZombie::decideMovementDirection() {
     int targetx;
@@ -297,6 +313,10 @@ void SmartZombie::decideMovementDirection() {
     }
 }
 
+void SmartZombie::deathrattle() {
+    getWorld()->increaseScore(2000);
+}
+
 // class Projectile
 
 void Projectile::doSomething() {
@@ -332,7 +352,6 @@ void Landmine::doSomething () {
         return;
     }
     if (getWorld()->shouldTriggerLandmine(getX(), getY())) {
-        cout << "Managed to run shouldTriggerLandmine" << endl;
         explode();
     }
 }
@@ -350,7 +369,8 @@ void Landmine::explode() {
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             getWorld()->spawnFlame(getX() + SPRITE_WIDTH*i,
-                getY() + SPRITE_HEIGHT*j, right); 
+                getY() + SPRITE_HEIGHT*j, up); 
+                // update to the spec specifies direction of flames should be up
         }
     }
 }

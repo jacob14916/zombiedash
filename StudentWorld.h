@@ -57,8 +57,8 @@ public:
     // used by Zombie to spawn vomit
     void spawnVomit(int x, int y);
     
-    // used by Zombie to spawn vaccine goodie when it dies
-    void spawnVaccineGoodie(int x, int y);
+    // used by DumbZombie to spawn vaccine goodie when it dies
+    void trySpawnVaccineGoodie(int x, int y);
 
     // used by Penelope to spawn landmines
     void spawnLandmine(int x, int y);

@@ -79,10 +79,6 @@ class Zombie : public Walker {
         
         void doSomething();
         virtual void decideMovementDirection() = 0;
-
-        virtual int getBounty() const = 0;
-
-        void deathrattle();
     private:
         bool m_paralyzed;
         int m_movementPlanDistance;
@@ -254,7 +250,7 @@ class DumbZombie : public Zombie {
         ~DumbZombie() {};
         
         void decideMovementDirection();
-        int getBounty() const {return 1000;}
+        void deathrattle();
     private:
 };
 
@@ -267,7 +263,7 @@ class SmartZombie : public Zombie {
         ~SmartZombie() {};
         
         void decideMovementDirection();
-        int getBounty() const {return 2000;}
+        void deathrattle();
     private:
 };
 

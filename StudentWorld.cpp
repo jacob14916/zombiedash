@@ -141,30 +141,30 @@ string StudentWorld::getGameStatText() {
     oss << "Score: ";
     oss << setw(6) << getScore();
 
-    oss << "  ";
+    oss << " ";
     oss << "Level: ";
     oss << setw(1) << getLevel();
 
-    oss << "  ";
+    oss << " ";
     oss << "Lives: ";
     oss << setw(1) << getLives();
 
-    oss << "  ";
-    oss << "Vacc: ";
+    oss << " ";
+    oss << "Vaccines: ";
     // causes problems when called after m_Penelope has been deleted
     oss << setw(1) << m_Penelope->getnumVaccines();
 
-    oss << "  ";
+    oss << " ";
     oss << "Flames: ";
     // causes problems when called after m_Penelope has been deleted
     oss << setw(1) << m_Penelope->getAmmo();
 
-    oss << "  ";
+    oss << " ";
     oss << "Mines: ";
     // causes problems when called after m_Penelope has been deleted
     oss << setw(1) << m_Penelope->getnumLandmines();
 
-    oss << "  ";
+    oss << " ";
     oss << "Infected: ";
     oss << setw(1) << m_Penelope->getInfectionCount();
     return oss.str();
@@ -265,7 +265,12 @@ void StudentWorld::spawnVomit(int x, int y) {
     m_Actors.push_back(new Vomit(this, x, y));
 }
 
-void StudentWorld::spawnVaccineGoodie(int x, int y) {
+void StudentWorld::trySpawnVaccineGoodie(int x, int y) {
+    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if (objectsOverlap(x, y, (*ai)->getX(), (*ai)->getY())) {
+            return;
+        }
+    }
     m_Actors.push_back(new VaccineGoodie(this, x, y));
 }
 
