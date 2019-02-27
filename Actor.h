@@ -33,11 +33,15 @@ class Actor : public GraphObject {
         // every actor runs this every tick
         virtual void doSomething() = 0;
 
-        void die() {m_dead = true;}
+        virtual void die() {m_dead = true;}
+
+        virtual void save() {}
 
         bool isDead() const {return m_dead;}
 
         virtual bool isZombieTarget() const {return false;}
+
+        virtual bool isScary() const {return false;}
 
         virtual void deathrattle() {}
 
@@ -79,6 +83,8 @@ class Zombie : public Walker {
         
         void doSomething();
         virtual void decideMovementDirection() = 0;
+
+        bool isScary() const {return true;}
     private:
         bool m_paralyzed;
         int m_movementPlanDistance;
@@ -102,6 +108,8 @@ class Person : public Walker {
 
         bool isInfected() const {return m_infected;}
 
+        virtual void onDeathByInfection() {}
+
         int getInfectionCount() const {return m_infectionCount;}
 
         void doSomething();
@@ -113,6 +121,31 @@ class Person : public Walker {
         int m_infectionCount;
 
         bool m_infected;
+
+};
+
+class Citizen : public Person {
+    public:
+        Citizen(StudentWorld*w, double x, double y):
+            Person(w, IID_CITIZEN, x, y, right),
+            m_paralyzed(false),
+            m_saved(false)
+            {}
+        
+        ~Citizen() {}
+
+        void doPersonAction();
+
+        void deathrattle();
+
+        void save() {die(); m_saved = true;}
+        // the not putting const bug returns
+        bool preventsEscape() const {return !isDead();}
+
+    private:
+        bool m_paralyzed;
+
+        bool m_saved;
 
 };
 

@@ -54,6 +54,134 @@ void Person::doSomething() {
     doPersonAction();
 }
 
+// class Citizen
+
+void Citizen::deathrattle() {
+    // punishment for failing to save this Citizen
+    if (!m_saved) {
+        getWorld()->increaseScore(-1000);
+        if (getInfectionCount() == 500) { // died of infection
+            if (randInt(1,10) <= 7) {
+                getWorld()->spawnDumbZombie(getX(), getY());
+            } else {
+                getWorld()->spawnSmartZombie(getX(), getY());
+            }
+        }
+    } else {
+        getWorld()->increaseScore(1000);
+    }
+}
+
+
+// a piece of fantastically ugly code
+void Citizen::doPersonAction() {
+    if (m_paralyzed) {
+        m_paralyzed = false;
+        return;
+    }
+
+    int nearestZX, nearestZY, nearestZd2;
+    bool zombieExists = getWorld()->getNearestScaryActor(
+        getX(), getY(), nearestZX, nearestZY, nearestZd2
+    );
+
+    int playerX, playerY, playerd2;
+    getWorld()->getPlayerLocationAndDistance(
+        getX(), getY(), playerX, playerY, playerd2
+    );
+
+    if (zombieExists && nearestZd2 <= 6400 && nearestZd2 <= playerd2) {
+        // run away from this zombie
+        int bestd2 = nearestZd2;
+        Direction bestDir = -1;
+        for (int i = 0; i < 4; i++) {
+            Direction dir = 90*i;
+            // iterate through directions
+            int x = getX(); int y = getY();
+            switch (dir) {
+                case up:    y += 2; break;
+                case down:  y -= 2; break;
+                case left:  x -= 2; break;
+                case right: x += 2; break;
+            }
+
+            if (!getWorld()->spriteCanGoHere(this, x, y)) {
+                continue;
+            }
+
+            int a, b, d2;
+            getWorld()->getNearestScaryActor(
+                x, y, a, b, d2
+            );
+
+            // previously, a < here made citizens run towards zombies
+            if (d2 > bestd2) {
+                bestd2 = d2;
+                bestDir = dir;
+            }   
+        }
+        if (bestDir != -1) {
+            setDirection(bestDir);
+            tryMove(bestDir, 2);
+        }
+    } else if (playerd2 <= 6400) {
+        // within 80 pixels of player, run to player
+
+        // I had this wrong earlier, leading to wack behavior
+        bool shouldGoDown = (playerY < getY());
+        bool shouldGoLeft = (playerX < getX());
+        bool goHorizontal = randInt(0,1);
+        if (playerX == getX()) { // same column
+            if (shouldGoDown) {
+                setDirection(down);
+            } else {
+                setDirection(up);
+            }
+        } else if (playerY == getY()) { // same row
+            if (shouldGoLeft) {
+                setDirection(left);
+            } else {
+                setDirection(right);
+            }
+        } else { // not same row or column
+            if (goHorizontal) {
+                if (shouldGoLeft) {
+                    setDirection(left);
+                } else {
+                    setDirection(right);
+                }
+            } else {
+                if (shouldGoDown) {
+                    setDirection(down);
+                } else {
+                    setDirection(up);
+                }
+            }
+        }
+        if (!tryMove(getDirection(), 2)) {
+            goHorizontal = !goHorizontal;
+            if (goHorizontal) {
+                if (shouldGoLeft) {
+                    setDirection(left);
+                } else {
+                    setDirection(right);
+                }
+            } else {
+                if (shouldGoDown) {
+                    setDirection(down);
+                } else {
+                    setDirection(up);
+                }
+            }
+            tryMove(getDirection(), 2);
+        }
+    }
+
+    
+
+    m_paralyzed = true;
+}
+
 // class Penelope
 
 void Penelope::doPersonAction() {
@@ -150,6 +278,7 @@ void Exit::doSomething() {
             getWorld()->playerOverlapsWithThis(getX(), getY())) {
         getWorld()->completedLevel();
     }
+    getWorld()->saveOverlapping(getX(), getY());
 }
 
 // class Pit

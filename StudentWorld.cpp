@@ -47,6 +47,9 @@ int StudentWorld::init()
                 m_Penelope = new Penelope(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j);
                 m_Actors.push_back(m_Penelope);
                 break;
+            case Level::citizen:
+                m_Actors.push_back(new Citizen(this, SPRITE_WIDTH*i, SPRITE_HEIGHT*j));
+                break;
             case Level::wall:
                 // so initially I put Wall(this, i, j) but this made the walls cluster together in the corner
                 // because the given numbers are too small
@@ -198,6 +201,14 @@ bool StudentWorld::playerOverlapsWithThis(int x, int y) const {
     return objectsOverlap(x, y, m_Penelope->getX(), m_Penelope->getY());
 }
 
+void StudentWorld::saveOverlapping(int x, int y)  {
+    for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if(objectsOverlap(x,y,(*ai)->getX(), (*ai)->getY())) {
+            (*ai)->save();
+        }
+    }
+}
+
 bool StudentWorld::shouldTriggerLandmine(int x, int y) const {
     for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
         if (!((*ai)->triggersLandmine())) {
@@ -222,6 +233,13 @@ void StudentWorld::givePlayerLandmine() {
     m_Penelope->pickupLandmine();
 }
 
+void StudentWorld::getPlayerLocationAndDistance(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const {
+    targetx = m_Penelope->getX();
+    targety = m_Penelope->getY();
+    targetd2 = (x-targetx)*(x-targetx) + (y-targety)*(y-targety);
+}
+
 void StudentWorld::getNearestZombieTarget(int x, int y, 
         int& targetx, int& targety, int& targetd2) const {
     int minx = m_Penelope->getX();
@@ -235,13 +253,39 @@ void StudentWorld::getNearestZombieTarget(int x, int y,
             if (d2 < mind2) {
                 minx = ax;
                 miny = ay;
-                mind2 = mind2;
+                mind2 = d2;
             }
         }
     }
     targetx = minx;
     targety = miny;
     targetd2 = mind2;
+}
+
+bool StudentWorld::getNearestScaryActor(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const {
+    int minx = -1;
+    int miny = -1;
+    int mind2 = 131072;
+    for (list<Actor*>::const_iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
+        if ((*ai)->isScary()) {
+            int ax = (*ai)->getX();
+            int ay = (*ai)->getY();
+            int d2 = (x-ax)*(x-ax) + (y-ay)*(y-ay);
+            if (d2 < mind2) {
+                minx = ax;
+                miny = ay;
+                mind2 = d2;
+            }
+        }
+    }
+    if (minx == -1) {
+        return false;
+    }
+    targetx = minx;
+    targety = miny;
+    targetd2 = mind2;
+    return true;
 }
 
 void StudentWorld::infectOverlapping(int x, int y) {
@@ -281,6 +325,15 @@ void StudentWorld::spawnLandmine(int x, int y) {
 void StudentWorld::spawnPit(int x, int y) {
     m_Actors.push_back(new Pit(this, x, y));
 }
+
+void StudentWorld::spawnSmartZombie(int x, int y) {
+    m_Actors.push_back(new SmartZombie(this, x, y));
+}
+
+void StudentWorld::spawnDumbZombie(int x, int y) {
+    m_Actors.push_back(new DumbZombie(this, x, y));
+}
+
 
 bool StudentWorld::spawnFlame(int x, int y, int dir) {
     for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {

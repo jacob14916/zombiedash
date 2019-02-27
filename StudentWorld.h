@@ -35,7 +35,10 @@ public:
     // see if Penelope overlaps with the object at (x,y)
     bool playerOverlapsWithThis(int x, int y) const;
 
-    // see if Penelope overlaps with the object at (x,y)
+    // used by Exit to save citizens
+    void saveOverlapping(int x, int y);
+
+    // see if landmine at x,y should be triggered
     bool shouldTriggerLandmine(int x, int y) const;
 
     // give Penelope a vaccine (called by VaccineGoodie objects)
@@ -49,6 +52,15 @@ public:
 
     // used by SmartZombie to find targets
     void getNearestZombieTarget(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const;
+
+    // used by Citizen to find the player
+    void getPlayerLocationAndDistance(int x, int y, 
+        int& targetx, int& targety, int& targetd2) const;
+
+    // used by Citizen to find zombies to run away from,
+    // returns false if no zombies 
+    bool getNearestScaryActor(int x, int y, 
         int& targetx, int& targety, int& targetd2) const;
 
     // used by Vomit to infect overlapping people
@@ -65,7 +77,12 @@ public:
 
     void spawnPit(int x, int y);
 
-    // used by Penelope to spawn flame
+    
+    // used by Citizen to spawn zombies when they die of infection
+    void spawnSmartZombie(int x, int y);
+    void spawnDumbZombie(int x, int y);
+
+    // used by Penelope and Landmine to spawn flame
     bool spawnFlame(int x, int y, int dir);
 
     // used by Flame to burn overlapping burnables
