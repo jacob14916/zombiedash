@@ -5,7 +5,7 @@ FLAGS =
 
 # to simulate g32, uncomment the following
 
-FLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fsanitize=bounds -Wall -Wextra -Wno-sign-compare -Werror=return-type
+#FLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fsanitize=bounds -Wall -Wextra -Wno-sign-compare -Werror=return-type
 
 # On cs32.seas.ucla.edu or lnxsrv06 or lnxsrv07 or lnxsrv09, uncomment the following two lines
 # CC = g32

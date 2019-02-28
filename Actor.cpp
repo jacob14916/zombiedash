@@ -54,6 +54,11 @@ void Person::doSomething() {
     doPersonAction();
 }
 
+void Person::infect() {
+    m_infected = true;
+    getWorld()->playSound(SOUND_CITIZEN_INFECTED);
+}
+
 // class Citizen
 
 void Citizen::deathrattle() {
@@ -66,9 +71,13 @@ void Citizen::deathrattle() {
             } else {
                 getWorld()->spawnSmartZombie(getX(), getY());
             }
+            getWorld()->playSound(SOUND_ZOMBIE_BORN);
+        } else {
+            getWorld()->playSound(SOUND_CITIZEN_DIE);
         }
     } else {
         getWorld()->increaseScore(1000);
+        getWorld()->playSound(SOUND_CITIZEN_SAVED);
     }
 }
 
@@ -262,7 +271,8 @@ void Penelope::tryFireFlamethrower() {
             break;
         }
     }
-    
+
+    getWorld()->playSound(SOUND_PLAYER_FIRE);
 }
 
 // class Wall
@@ -276,6 +286,7 @@ void Wall::doSomething() {
 void Exit::doSomething() {
     if (getWorld()->playerCanEscape() && 
             getWorld()->playerOverlapsWithThis(getX(), getY())) {
+        getWorld()->playSound(SOUND_LEVEL_FINISHED);
         getWorld()->completedLevel();
     }
     getWorld()->saveOverlapping(getX(), getY());
@@ -295,6 +306,7 @@ void Goodie::doSomething() {
     }
     if (getWorld()->playerOverlapsWithThis(getX(), getY())) {
         getWorld()->increaseScore(50);
+        getWorld()->playSound(SOUND_GOT_GOODIE);
         getPickedUp();
         die();
     }
@@ -381,6 +393,7 @@ void DumbZombie::decideMovementDirection() {
 }
 
 void DumbZombie::deathrattle() {
+    getWorld()->playSound(SOUND_ZOMBIE_DIE);
     getWorld()->increaseScore(1000);
 
     if (randInt(1,10) == 10) {
@@ -443,6 +456,7 @@ void SmartZombie::decideMovementDirection() {
 }
 
 void SmartZombie::deathrattle() {
+    getWorld()->playSound(SOUND_ZOMBIE_DIE); // oh no, a tiny piece of duplicated code
     getWorld()->increaseScore(2000);
 }
 
@@ -494,6 +508,7 @@ void Landmine::damage() {
 }
 
 void Landmine::explode() {
+    getWorld()->playSound(SOUND_LANDMINE_EXPLODE);
     die();
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {

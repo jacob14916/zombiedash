@@ -105,6 +105,7 @@ int StudentWorld::move()
 
     // look at who's dead
     if (m_Penelope->isDead()) {
+        playSound(SOUND_PLAYER_DIE);
         // player died
         // why do i have to call this myself? would make more sense if GameWorld handled
         decLives();

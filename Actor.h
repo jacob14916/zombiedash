@@ -102,7 +102,7 @@ class Person : public Walker {
 
         bool isZombieTarget() const {return true;}
 
-        void infect() {m_infected = true;}
+        void infect();
 
         void uninfect() {m_infected = false; m_infectionCount = 0;}
 

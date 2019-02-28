@@ -1,7 +1,7 @@
 ################
-#@GGGGGGGGGGGGX#
-#LLLLLLLLLLLLLL#
-############## #
+#@GGGGGGGGGGGGG#
+#VVVVVVVVVVVVVV#
+#ooooooooooooo #
 #              #
 #ssssssssssssss#
 #ssssssssssssss#
@@ -12,5 +12,5 @@
 #ssssssssssssss#
 #ssssssssssssss#
 #ssssssssssssss#
-#ssssssssssssss#
+#Xsssssssssssss#
 ################
