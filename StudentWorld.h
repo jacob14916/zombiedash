@@ -47,7 +47,7 @@ public:
     // used by GasCanGoodie to give Penelope 5 ammo
     void givePlayerAmmo();
 
-    // used by GasCanGoodie to give Penelope 5 ammo
+    // used by LandmineGoodie to give Penelope 2 landmines
     void givePlayerLandmine();
 
     // used by SmartZombie to find targets

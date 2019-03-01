@@ -1,6 +1,6 @@
 ################
 #@GGGGGGGGGGGGG#
-#VVVVVVVVVVVVVV#
+#LLLLVVVVVVVVVV#
 #ooooooooooooo #
 #              #
 #ssssssssssssss#

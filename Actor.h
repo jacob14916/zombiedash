@@ -84,7 +84,7 @@ class Zombie : public Walker {
         void doSomething();
         virtual void decideMovementDirection() = 0;
 
-        bool isScary() const {return true;}
+        bool isScary() const {return !(isDead());}
     private:
         bool m_paralyzed;
         int m_movementPlanDistance;
@@ -107,8 +107,6 @@ class Person : public Walker {
         void uninfect() {m_infected = false; m_infectionCount = 0;}
 
         bool isInfected() const {return m_infected;}
-
-        virtual void onDeathByInfection() {}
 
         int getInfectionCount() const {return m_infectionCount;}
 
@@ -138,7 +136,7 @@ class Citizen : public Person {
 
         void deathrattle();
 
-        void save() {die(); m_saved = true;}
+        void save() {if (!isDead()){die(); m_saved = true;}}
         // the not putting const bug returns
         bool preventsEscape() const {return !isDead();}
 
@@ -161,7 +159,7 @@ class Penelope : public Person {
         ~Penelope() {};
 
         // this is what differentiates Penelope (so far) from a Citizen
-        virtual void doPersonAction();
+        void doPersonAction();
 
         int getnumVaccines() const {return m_numVaccines;}
 
@@ -173,7 +171,7 @@ class Penelope : public Person {
 
         void pickupVaccine() {m_numVaccines++;}
 
-        void pickupLandmine() {m_numLandmines++;}
+        void pickupLandmine() {m_numLandmines+= 2;}
 
     private:
         // penelope data
@@ -201,8 +199,8 @@ class Wall : public Actor {
         }
         // since this is a wall, do nothing
         void doSomething();
-        virtual bool blocksMovement() const {return true;}
-        virtual bool blocksFlame() const {return true;}
+        bool blocksMovement() const {return true;}
+        bool blocksFlame() const {return true;}
     private:
         // no data, this is a wall
 };

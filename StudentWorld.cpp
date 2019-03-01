@@ -97,8 +97,6 @@ string StudentWorld::getLevelFilename() {
 
 int StudentWorld::move()
 {
-    // This code lets you kill yourself since there's no other way to right now
-
     for (list<Actor*>::iterator ai = m_Actors.begin(); ai != m_Actors.end(); ai++) {
         (*ai)->doSomething();
     }
@@ -107,7 +105,6 @@ int StudentWorld::move()
     if (m_Penelope->isDead()) {
         playSound(SOUND_PLAYER_DIE);
         // player died
-        // why do i have to call this myself? would make more sense if GameWorld handled
         decLives();
         return GWSTATUS_PLAYER_DIED;
     }

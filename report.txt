@@ -1,4 +1,748 @@
 ## My Classes
 
+The inheritance structure of my classes is as follows
+
+GraphObject
+|
++ Actor + Walker ---+ Person --+ Penelope
+        |           |          + Citizen     
+        |           + Zombie --+ DumbZombie
+        |                      + SmartZombie
+        + Projectile ----------+ Flame
+        |                      + Vomit
+        + Goodie --------------+ LandmineGoodie
+        |                      + VaccineGoodie
+        |                      + GasCanGoodie
+        + ---------------------+ Landmine
+        + ---------------------+ Wall
+        + ---------------------+ Exit
+        + ---------------------+ Pit
+
+Class public interface details (lines 23-627 of this document):
+
+class StudentWorld : public GameWorld
+{
+    Since nothing inherits from this class, it has no virtual member functions
+
+        StudentWorld(std::string assetPath);
+    My StudentWorld constructor passes the assetPath to GameWorld
+        
+        virtual ~StudentWorld();
+    Destructor calls cleanUp() to make sure there is nothing left in memory
+
+        virtual int init();
+    Loads the current level, whose name is determined by getLevelFilename(). If not
+    found, the player won; if there is a file format error, returns appropriately.
+    Then loops through the level, creating the correct types of Actors at the locations
+    dictated by the level file.
+
+        virtual int move();
+    Calls each actor's doSomething() method, then checks if the player is dead,
+    then cleans out other dead actors, calling each dead actor's deathrattle(). 
+    Updates game stat text. Checks if level has been completed or if the game should 
+    continue, and returns the appropriate status. 
+
+        virtual void cleanUp();
+    Iterates through actors and deletes and erases the dead ones, not calling 
+    deathrattle(); since the actors are stored in a list, it is safe to keep using
+    the same iterator.
+
+        bool spriteCanGoHere(Actor* a, int x, int y) const;
+    checks for a SPRITE_HEIGHT x SPRITE_WIDTH bounding box violation with 
+    all actors whose blocksMovement() returns true, except a; 
+    caller passes a = this when appropriate, or nullptr if not
+
+        bool playerCanEscape() const;
+    see if there are any citizens left alive (if there are any Actors whose
+    preventsEscape() functions return true)
+
+        bool playerOverlapsWithThis(int x, int y) const;
+    see if Penelope overlaps with the object at (x,y)
+
+        void saveOverlapping(int x, int y);
+    used by Exit to save citizens; calls save() for each overlapping actor
+
+        bool shouldTriggerLandmine(int x, int y) const;
+    check if landmine at x,y should be triggered by looking for overlapping actors
+    whose triggersLandmine() functions return true
+
+        void givePlayerVaccine();
+    give Penelope a vaccine (called by VaccineGoodie objects)
+
+        void givePlayerAmmo();
+    used by GasCanGoodie to give Penelope 5 ammo
+
+        void givePlayerLandmine();
+    used by LandmineGoodie to give Penelope 2 landmines
+
+        void getNearestZombieTarget(int x, int y, 
+            int& targetx, int& targety, int& targetd2) const;
+    used by SmartZombie to find targets; sets inputs to the coordinates
+    of the nearest actor whose isZombieTarget() returns true
+
+        void getPlayerLocationAndDistance(int x, int y, 
+            int& targetx, int& targety, int& targetd2) const;
+    used by Citizen to find the player; sets inputs to the coordinates
+    of the player
+
+        bool getNearestScaryActor(int x, int y, 
+            int& targetx, int& targety, int& targetd2) const;
+    used by Citizen to find zombies to run away from; sets inputs to the coordinates
+    of the nearest living actor whose isScary() returns true; returns false if none
+    found
+
+        void infectOverlapping(int x, int y);
+    used by Vomit to infect() overlapping actors
+
+        void spawnVomit(int x, int y);
+    used by Zombie to spawn vomit
+        
+        void trySpawnVaccineGoodie(int x, int y);
+    used by DumbZombie to spawn vaccine goodie when it dies; if the goodie would overlap
+    with any other actor, does not spawn
+
+        void spawnLandmine(int x, int y);
+    used by Penelope to spawn landmines
+
+        void spawnPit(int x, int y);
+    used by Landmine to spawn a pit when it explodes
+        
+        void spawnSmartZombie(int x, int y);
+        void spawnDumbZombie(int x, int y);
+    used by Citizen to spawn zombies when they die of infection
+
+        bool spawnFlame(int x, int y, int dir);
+    used by Penelope and Landmine to spawn flame
+
+        void damageOverlapping(int x, int y);
+    used by Flame to damage() overlapping actors
+
+        static bool boundingBoxesIntersect(double x1, double y1, double x2, double y2)
+    checks whether SPRITE_WIDTH x SPRITE_HEIGHT bounding boxes would have any intersection
+    used to determine movement blocking by walls and walkers
+
+        static bool objectsOverlap(double x1, double y1, double x2, double y2)
+    checks whether radius 10 circles overlap 
+
+        void completedLevel ();
+    called by Exit when Penelope completes the level succesfully
+};
+
+class Actor : public GraphObject {
+    
+    Actor(StudentWorld* w, int imageID, double startX, double startY, 
+                int dir = 0, int depth = 0, double size = 1.0)
+    constructor passes on necessary GraphObject information
+
+    Almost every member function is virtual, since Actor is an abstract class and is 
+    never instantiated on its own
+
+        virtual ~Actor() {}
+    Virtual destructor makes sure other destructors have a chance to run when
+    this object is destroyed, since StudentWorld only calls delete on Actor*
+    pointers
+
+        StudentWorld* getWorld() const
+    returns the StudentWorld pointer
+
+        virtual bool blocksMovement() const
+    Returns false; some derived classes return true
+
+        virtual bool blocksFlame() const 
+    Returns false; some derived classes return true
+
+        virtual bool triggersLandmine() const 
+    Returns false; some derived classes return true
+
+        virtual bool preventsEscape() const 
+    Returns false; some derived classes return true
+
+        // every actor runs this every tick
+        virtual void doSomething() = 0;
+    Pure virtual since every actor has unique and significantly different
+    actions that run every tick
+
+        virtual void die() {m_dead = true;}
+    Sets state to dead; virtual in case actor has actions that occur
+    immediately when it dies
+
+        virtual void save() {}
+    Does nothing; some derived classes (specifically Citizen) override
+
+        bool isDead() const {return m_dead;}
+    Returns whether actor is dead; not virtual
+
+        virtual bool isZombieTarget() const {return false;}
+    Returns false; some derived classes return true
+
+        virtual bool isScary() const {return false;}
+    Returns false; some derived classes return true
+
+        virtual void deathrattle() {}
+    Does nothing; some derived classes override
+    Called when actor is removed from the game because it is dead, but the game is
+    still running (as opposed to the destructor, which is called whenever the
+    actor is deleted, including after the level is over)
+
+        virtual void infect() {}
+    Does nothing; some derived classes (specifically Person) override
+
+        virtual void damage() {}
+    Does nothing; some derived classes (specifically Walker and Goodie) override
+};
+
+class Walker : public Actor {
+    Still an abstract class since it does not implement void doSomething()
+
+        Walker(StudentWorld* w, int imageID, double x, double y, int dir):
+            Actor(w, imageID, x, y, dir) {}
+    
+    constructor passes along information to Actor
+        
+        virtual ~Walker() {};
+    
+    Does nothing, but virtual just in case
+
+        virtual bool blocksMovement() const {return true;}
+    
+    Returns true since all Walkers block other Walkers' movement
+
+        bool triggersLandmine() const {return true;}
+
+    Returns true since all Walkers trigger landmines
+
+        virtual void damage() {die();}
+
+    Calls die() since all Walkers die when they are damaged
+
+        bool tryMove(int direction, int stepLength);
+
+    Attempts to move in the given direction, checking if any other actors
+    block movement
+};
+
+class Zombie : public Walker {
+        Zombie(StudentWorld* w, double x, double y):
+            Walker(w, IID_ZOMBIE, x, y, right), 
+            m_paralyzed(false),
+            m_movementPlanDistance(0) {}
+    
+    Zombie constructor passes IID_ZOMBIE to Walker since all Zombies have the
+    same image, IID_ZOMBIE
+        
+        virtual ~Zombie() {};
+    
+    Does nothing, but virtual just in case
+        
+        void doSomething();
+
+    Does common Zombie actions, i.e. vomiting, resetting movement plan, then
+    calls the pure virtual function decideMovementDirection(). Not virtual since
+    not expected to be implemented by derived classes
+
+        virtual void decideMovementDirection() = 0;
+    Decide which way to move for the next movement plan
+    This is what differentiates that Dumb and Smart Zombies
+    Pure virtual since Dumb and Smart have nothing in common, 
+    and doing nothing wouldn't make sense either
+
+        bool isScary() const {return true;}
+    Returns true since all zombies are scary
+};
+
+class Person : public Walker {
+    Common base class for Penelope and Citizen
+
+        Person(StudentWorld* w, int imageID, double x, double y, int dir):
+    
+    Passes data down to Walker
+
+        virtual ~Person() {}
+
+    Does nothing, but virtual just in case
+
+        bool isZombieTarget() const {return true;}
+
+    Returns true; all people are targets for Zombie
+
+        void infect();
+
+    Sets state to infected; overrides Actor
+
+        void uninfect() {m_infected = false; m_infectionCount = 0;}
+
+    Resets to uninfected; used by Penelope when taking a vaccine
+
+        bool isInfected() const {return m_infected;}
+
+    Returns whether the Person is infected; overrides Actor
+    
+        int getInfectionCount() const {return m_infectionCount;}
+
+    Gets the number of ticks the Person has been infected for; used to display
+    Penelope's infection count
+
+        void doSomething();
+
+    Not virtual, not intended to be overridden.
+    Does actions common to all Persons; specifically, increments infection count
+    and checks if the Person should die due to being infected, then calls
+    doPersonAction() to do differentiated stuff
+
+        virtual void doPersonAction() = 0;
+
+    Pure virtual function, because plain Person doesn't make sense, and different
+    derived classes do very different things each tick
+
+};
+
+class Citizen : public Person {
+    Not an abstract class!
+
+        Citizen(StudentWorld*w, double x, double y)
+
+    Passes IID_CITIZEN, direction=right to Person
+
+        ~Citizen() {}
+
+    Actually just does nothing
+
+        void doPersonAction();
+
+    Decides whether and which way the Citizen will move this tick
+
+        void deathrattle();
+
+    Spawns a zombie in place of the citizen if it dies of infection while 
+    the game is running. Plays sounds and metes out appropriate punishment.
+    overrides Actor::deathrattle
+
+        void save()
+
+    Kills the citizen, but keeps track of that they were saved. overrides
+    Actor::save
+
+        bool preventsEscape() const;
+
+    Returns true if the citizen is alive, false if dead
+    Since all living citizens prevent Penelope from escaping without them
+};
+
+
+class Penelope : public Person {
+    Not abstract, no virtual functions since not intended to be overridden
+        Penelope(StudentWorld* w, double x, double y)
+    
+    Initiates Person with IID_PLAYER
+    
+        ~Penelope() {};
+
+    Does nothing
+
+        void doPersonAction();
+
+    Gets key input from StudentWorld and takes appropriate action
+    For example, if the down key is pressed, causes Penelope to try to
+    move downwards
+
+        int getnumVaccines();
+    
+    Get the number of vaccines that Penelope is holding on to
+
+        int getnumLandmines();
+
+    Get the number of landmines that Penelope is holding on to
+
+        int getAmmo();
+
+    Get the number of flames that Penelope has left to fire
+
+        void gainAmmo();
+
+    Increment ammo by 5
+
+        void pickupVaccine()
+
+    Increment number of vaccines by 1
+
+        void pickupLandmine()
+    
+    Increment number of landmines by 2
+};
+
+
+class Wall : public Actor {
+    Not abstract, no virtual functions since not intended to be overridden
+        Wall(StudentWorld* w, double x, double y):
+    
+    Initiates Actor with IID_WALL
+    
+        ~Wall();
+    
+    Do nothing
+
+        void doSomething();
+
+    Do nothing
+
+        bool blocksMovement() const {return true;}
+
+    Return true; walls block movement
+
+        bool blocksFlame() const {return true;}
+
+    Return true; walls block flame
+};
+
+
+class Pit : public Actor {
+    Not abstract, no virtual functions since not intended to be overridden
+
+        Pit(StudentWorld* w, double x, double y)
+
+    Passes IID_PIT to Actor
+    
+        ~Pit() {}
+
+    Does nothing
+
+        void doSomething();
+
+    Damages all overlapping actors with a call to StudentWorld::damageOverlapping
+
+};
+
+
+class Exit : public Actor {
+    Not abstract, no virtual functions since not intended to be overridden
+
+        Exit(StudentWorld*w, double x, double y)
+
+    Passes IID_EXIT to Actor
+
+        ~Exit()
+
+    Does nothing
+
+        void doSomething();
+
+    Tries to save all overlapping actors (only Citizens can be saved)
+    If the player overlaps and no actors prevent the player from escaping the level,
+    notifies StudentWorld that the player has completed the level
+
+        virtual bool blocksFlame() const {return true;}
+
+    Exits block flame according to the spec
+};
+
+
+class Goodie : public Actor {
+    abstract class
+        Goodie(StudentWorld* w, int imageID, double x, double y)
+
+    Passes stuff on from derived class constructor
+
+        virtual ~Goodie() {};
+
+    does nothing; virtual just in case
+
+        void doSomething();
+
+    checks to see if the goodie is alive and if the player overlaps 
+    the goodie; if so, calls the pure virtual function getPickedUp and die()s
+
+        virtual void getPickedUp() = 0;
+
+    Pure virtual function for specific pickup action of derived classes
+
+        void damage() {die();}
+
+    Kills the goodie
+};
+
+class VaccineGoodie : public Goodie {
+    Not abstract, no virtual functions since not intended to be overridden
+    public:
+        VaccineGoodie(StudentWorld* w, double x, double y):
+
+    Initiates Goodie with IID_VACCINE
+
+        ~VaccineGoodie() {};
+
+    Does nothing
+
+        void getPickedUp()
+
+    Give Penelope 1 vaccine
+};
+
+class GasCanGoodie : public Goodie {
+    Not abstract, no virtual functions since not intended to be overridden
+    public:
+        GasCanGoodie(StudentWorld* w, double x, double y)
+    Initiates Goodie with IID_GAS_CAN_GOODIE
+
+        ~GasCanGoodie() {};
+
+    Does nothing
+
+        void getPickedUp();
+
+    Give Penelope 5 ammo
+};
+
+class LandmineGoodie : public Goodie {
+    Not abstract, no virtual functions since not intended to be overridden
+        LandmineGoodie(StudentWorld* w, double x, double y)
+
+    Initiates Goodie with IID_LANDMINE_GOODIE
+
+        ~LandmineGoodie() {};
+
+    Does nothing
+
+        void getPickedUp();
+
+    Give Penelope 2 landmines
+};
+
+class DumbZombie : public Zombie {
+    Not abstract, no virtual functions since not intended to be overridden
+    public:
+        DumbZombie(StudentWorld* w, double x, double y)
+    
+    Initiates Zombie
+
+        ~DumbZombie() {};
+        
+    Does nothing
+
+        void decideMovementDirection();
+
+    Following the spec, uses random procedure to decide next movement direction
+
+        void deathrattle();
+
+    Throws goodie with 1 in 10 chance; awards player 1000 points
+};
+
+class SmartZombie : public Zombie {
+    Not abstract, no virtual functions since not intended to be overridden
+
+        SmartZombie(StudentWorld* w, double x, double y):
+
+    Initiates Zombie
+
+        ~SmartZombie() {};
+
+    Does nothing
+        
+        void decideMovementDirection();
+
+    Following the spec, searches for target and then sets direction to move
+    towards the target
+
+        void deathrattle();
+
+    Awards the player 2000 points
+};
+
+
+class Projectile: public Actor {
+    generalizes Vomit and Flame
+    public:
+        Projectile(StudentWorld*w, int imageID, double x, double y, Direction dir)
+      
+    Passes info to Actor
+
+        virtual ~Projectile() {}
+
+    Does nothing
+
+        void doSomething();
+    
+    If have been alive for 2 ticks, dies and returns; otherwise
+    calls doProjectileAction
+
+        virtual void doProjectileAction() = 0;
+    Pure virtual function, either flame damage or vomit infect overlapping
+};
+
+class Vomit : public Projectile {
+    Not abstract, no virtual functions since not intended to be overridden
+    public:
+        Vomit(StudentWorld* w, double x, double y)
+
+    Passes IID_VOMIT to Projectile
+        
+        ~Vomit () {}
+
+    Does nothing
+
+        void doProjectileAction();
+
+    Infects overlapping actors
+};
+
+class Flame : public Projectile {
+    Not abstract, no virtual functions since not intended to be overridden
+    public:
+        Flame(StudentWorld* w, double x, double y, Direction dir)
+    
+    Passes IID_FLAME to Projectile
+
+        ~Flame() {}
+
+    Does nothing
+
+        void doProjectileAction();
+
+    Damages overlapping actors
+};
+
+class Landmine : public Actor {
+    public:
+        Landmine(StudentWorld* w, double x, double y)
+
+    Passes IID_LANDMINE to Actor
+
+        ~Landmine() {}
+
+    Does nothing
+
+        void doSomething();
+
+    Count down from 30 ticks before becoming active
+    Once active:
+    If overlapping actor triggersLandmine(), then explode
+
+        void damage();
+
+    Explode immediately
+
+        void deathrattle();
+
+    Leave behind a Pit
+};
+
+
+## Unfinished functionality, bugs, etc
+
+None known
+
+## Design assumptions
+
+- In some cases it was ambiguous whether an Actor could do something even though it
+was dead. For example, can dead Actors block other Actors' way, trigger Landmines,
+or be saved by Exits? It was difficult to test what the reference version was doing
+because the only edge cases take place inside of a single tick and are hard to
+create artificially. I used common sense on a case-by-case basis.
+
+## Testing my classes
+
+StudentWorld: That the game ran smoothly in all my other tests was enough evidence
+for me that my StudentWorld was working. One thing I tested specifically was removal
+of dead Actors, which I tested initially by letting the user kill Penelope with 
+keyboard input. StudentWorld was also full of methods each designed to be called
+by one or two other classes (it became something of a God object unfortunately),
+whose testing I cover in those classes' writeups.
+
+Actor: All of my other classes inherited from Actor, so every bit of functionality 
+I tested elsewhere depended on Actor working correctly.
+
+Walker: This class contained the method that let Actors that inherited from it move.
+Since I created Walker before most of my other classes, factoring movement
+out of Penelope and instead having Penelope inherit from Walker, I used
+user input to move Penelope around a map of only Walls until
+her movement was satisfactory. Since the other Actors moved similarly to Penelope
+(calling moveTo(), always facing in the direction they were moving, should not
+be able to walk through walls or each other) once I tested Walker's functionality 
+with Penelope I was confident it would function correctly in other cases.
+
+Zombie: Since I created DumbZombie first and later factored out common data and
+methods between DumbZombie and SmartZombie into Zombie, I ended up not testing
+Zombie specifically, instead testing the derived classes.
+
+Person: This class contained the methods and data to let Actors that inherit
+from it get infected, display how long they've been infected, and heal. I tested
+it after I had Vomit and DumbZombie working but before I created Citizen, by having
+Penelope inherit from it, and running up to Zombies, getting infected, and watching
+the infection count on the screen. Later after I created VaccineGoodie I tested
+whether infection reset worked correctly in a similar manner, manually using the
+player to pick up and use vaccines.
+
+Citizen: I made this class last. I tested it by playing through the levels with
+Citizens and checking that their behavior matched that of the reference version
+of the game. At first my Citizens ran away from Penelope and seemed to be attracted
+to Zombies, a bug I traced to one line in my Citizen's decideMovementDirection()
+function; after that, they appeared to behave correctly.
+
+Penelope: I created Penelope first and tested her movement by playing the game on a
+blank map. After I made walls, I tested to make sure she would not walk through them.
+For each new feature I added (VaccineGoodie, Landmine, etc) there was usually some part
+that depended on the Penelope class; my testing strategy for all of these was to
+only use qualitative tests (i.e. play the game) but to test often and after making 
+small changes, so that any errors would be easy to find and fix.
+
+Wall: I tested Wall by creating Walls according to the Level file in my init() 
+function and checking to make sure that the game appeared the same as the reference
+game playing the same level. I also checked to make sure the player and other Walkers
+could not move through walls, and that flames fired by Penelope's flamethrower would
+be blocked by Walls. I discovered that in certain positions it was possible to shoot
+flames through the gap in between neighboring walls, but this behavior was a consquence
+of the way the spec defined overlap rather than a bug in my code, and I confirmed
+that the reference game also exhibited this behavior.
+
+Pit: I tested Pit by editing the level01.txt file to have a lot of pits and 
+then walking into them with Penelope to make sure damage() was being called
+correctly. Since it worked the first time, I didn't see the need to test it further.
+
+Exit: I tested the Exit by creating Exits and walking over them. After I introduced
+Citizens I noticed that the Exit allowed the player to leave with Citizens still alive,
+so I fixed the playerCanEscape() function.
+
+Goodie: A base class that factored out the common functionality between VaccineGoodie
+and GasCanGoodie; I never tested it individually.
+
+VaccineGoodie: The first Goodie class I created; I tested by editing the levels to
+contain more goodies and walking over them with the player. I never encountered
+any issues.
+
+GasCanGoodie: With the experience from making VaccineGoodie, getting GasCanGoodie to
+work took very little time, and I tested it by putting some on the map
+and walking over it with Penelope (as usual).
+
+LandmineGoodie: Basically the same story as GasCanGoodie, but even easier since
+I already had the Goodie base class to inherit from. I noticed that I seemed to
+have less landmines on levels in my version than in the reference version,
+and discovered that I was only getting one landmine per LandmineGoodie instead of
+two, a bug easily fixed.
+
+DumbZombie: Tested by creating them and interacting with them. To test the goodie
+dropping behavior, I modified my DumbZombie to always run the goodie dropping code,
+instead of 1/10 of the time. I noticed that zombies were usually killed by flames,
+and those flames would destroy the goodie on the next tick every time, causing the
+goodie to flash for one tick. To make sure this was intended behavior, I tested 
+the reference version on a map with a lot of zombies and flames. I killed 40 zombies
+in one level and didn't get a single goodie; the probability that this would happen
+if the goodies were not supposed to be destroyed I estimated as (1-1/10)^40 ~= e^-4
+~= 1.5%; after playing the level again and again not getting any goodies, I was
+confident that the reference code suffered the same issue as well (or just did not 
+include the goodie dropping behavior).
+
+SmartZombie: I tested these by creating them and interacting with them, and never
+noticed a qualitative difference between my SmartZombies and the reference ones.
+
+Projectile: A base class I created after the fact, which I never bothered to test.
+
+Vomit: Tested by letting the Zombies approach Penelope and vomit on her, which would 
+cause her to become infected as desired.
+
+Flame: Tested by using Penelope to shoot flames. At first my flames were not blocked
+by exits so I updated the Exit class accordingly.
+
+Lanmdine: I tested by placing landmines and walking on top of them, then placing
+landmines and blowing them up with the flamethrower. Never had any issues.
+
 
 
